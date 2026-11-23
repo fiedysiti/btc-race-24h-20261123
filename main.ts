@@ -96,14 +96,19 @@ await runBars({
     const bar = closes.length - 1;
 
     // Exits first: if holding, either the stop or the trend exit sells all.
+    // Both limits are basis points, so each side is scaled by 10000: the stop
+    // trips when the close falls below 98.5% of the entry price, and the trend
+    // exit trips when the trailing 120-bar return falls below -2%. (With a
+    // smaller scale the stop would sit at 15% and the trend exit could never
+    // fire, so the position would ride every down day to the final flatten.)
     const holding = state.positions.get(symbol);
     if (holding !== undefined && holding.qty > 0n) {
-      if (entryPx !== null && close * 1000n < entryPx * (1000n - STOP_BPS)) {
+      if (entryPx !== null && close * 10000n < entryPx * (10000n - STOP_BPS)) {
         entryPx = null;
         const sell = sellAll(state);
         return sell === null ? [] : [sell];
       }
-      if (closes.length > EXIT_BARS && close * 100n < closes[closes.length - EXIT_BARS - 1] * (100n - EXIT_BPS)) {
+      if (closes.length > EXIT_BARS && close * 10000n < closes[closes.length - EXIT_BARS - 1] * (10000n - EXIT_BPS)) {
         entryPx = null;
         const sell = sellAll(state);
         return sell === null ? [] : [sell];
